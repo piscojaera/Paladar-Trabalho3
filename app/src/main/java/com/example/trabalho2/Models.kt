@@ -1,7 +1,12 @@
 package com.example.trabalho2
 
+import androidx.room.Entity
+import androidx.room.PrimaryKey
+
+@Entity(tableName = "restaurantes")
 data class Restaurante(
-    val id: Int,
+    @PrimaryKey(autoGenerate = true)
+    val id: Int = 0,
     val nome: String,
     val nota: Double,
     val preco: String,
@@ -10,8 +15,10 @@ data class Restaurante(
     val favorito: Boolean = false
 )
 
+@Entity(tableName = "categorias")
 data class Categoria(
-    val id: Int,
+    @PrimaryKey(autoGenerate = true)
+    val id: Int = 0,
     val nome: String,
     val descricao: String
 )

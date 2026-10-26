@@ -41,6 +41,14 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
+import android.util.Log
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.ui.platform.LocalContext
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import androidx.compose.material.icons.filled.Edit
 
 @Composable
 fun TelaHome(
@@ -114,6 +122,21 @@ fun TelaRestaurantes(
     var nota by remember { mutableStateOf("") }
     var preco by remember { mutableStateOf("") }
     var descricao by remember { mutableStateOf("") }
+    var editando by remember { mutableStateOf<Restaurante?>(null) }
+
+    val context = LocalContext.current
+    val dao = AppDatabase.getDatabase(context).restauranteDao()
+    var lista by remember { mutableStateOf(emptyList<Restaurante>()) }
+
+    suspend fun carregar() {
+        try {
+            lista = withContext(Dispatchers.IO) { dao.buscarTodos() }
+        } catch (e: Exception) {
+            Log.e("Paladar", "Erro ao buscar restaurantes", e)
+        }
+    }
+
+    LaunchedEffect(Unit) { carregar() }
 
     Column(
         modifier = Modifier
@@ -178,18 +201,22 @@ fun TelaRestaurantes(
                     preco.isNotBlank()
                 ) {
 
-                    val novoId = (restaurantes.maxOfOrNull { it.id } ?: 0) + 1
-
-                    restaurantes.add(
-                        Restaurante(
-                            id = novoId,
-                            nome = nome,
-                            nota = notaConvertida,
-                            preco = preco,
-                            categoriaId = 1,
-                            descricao = descricao
-                        )
+                    val novo = Restaurante(
+                        nome = nome,
+                        nota = notaConvertida,
+                        preco = preco,
+                        categoriaId = 1,
+                        descricao = descricao
                     )
+
+                    CoroutineScope(Dispatchers.IO).launch {
+                        try {
+                            dao.inserir(novo)
+                            carregar()
+                        } catch (e: Exception) {
+                            Log.e("Paladar", "Erro ao inserir restaurante", e)
+                        }
+                    }
 
                     nome = ""
                     nota = ""
@@ -209,7 +236,7 @@ fun TelaRestaurantes(
         ) {
 
             items(
-                items = restaurantes,
+                items = lista,
                 key = { it.id }
             ) { restaurante ->
 
@@ -252,10 +279,15 @@ fun TelaRestaurantes(
 
                         IconButton(
                             onClick = {
+                                CoroutineScope(Dispatchers.IO).launch {
+                                    try {
+                                        dao.deletar(restaurante)
+                                        carregar()
+                                    } catch (e: Exception) {
+                                        Log.e("Paladar", "Erro ao remover restaurante", e)
+                                    }
+                                }
 
-                                restaurantes.remove(
-                                    restaurante
-                                )
                             }
                         ) {
 
