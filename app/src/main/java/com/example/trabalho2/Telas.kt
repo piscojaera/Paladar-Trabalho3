@@ -1,5 +1,6 @@
 package com.example.trabalho2
 
+import android.R.attr.onClick
 import androidx.compose.ui.Alignment
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.foundation.background
@@ -201,20 +202,43 @@ fun TelaRestaurantes(
                     preco.isNotBlank()
                 ) {
 
-                    val novo = Restaurante(
-                        nome = nome,
-                        nota = notaConvertida,
-                        preco = preco,
-                        categoriaId = 1,
-                        descricao = descricao
-                    )
+                    val atual = editando
 
-                    CoroutineScope(Dispatchers.IO).launch {
-                        try {
-                            dao.inserir(novo)
-                            carregar()
-                        } catch (e: Exception) {
-                            Log.e("Paladar", "Erro ao inserir restaurante", e)
+                    if (atual == null) {
+
+                        val novo = Restaurante(
+                            nome = nome,
+                            nota = notaConvertida,
+                            preco = preco,
+                            categoriaId = 1,
+                            descricao = descricao
+                        )
+
+                        CoroutineScope(Dispatchers.IO).launch {
+                            try {
+                                dao.inserir(novo)
+                                carregar()
+                            } catch (e: Exception) {
+                                Log.e("Paladar", "Erro ao inserir restaurante", e)
+                            }
+                        }
+
+                    } else {
+
+                        val atualizado = atual.copy(
+                            nome = nome,
+                            nota = notaConvertida,
+                            preco = preco,
+                            descricao = descricao
+                        )
+
+                        CoroutineScope(Dispatchers.IO).launch {
+                            try {
+                                dao.atualizar(atualizado)
+                                carregar()
+                            } catch (e: Exception) {
+                                Log.e("Paladar", "Erro ao atualizar restaurante", e)
+                            }
                         }
                     }
 
@@ -222,11 +246,12 @@ fun TelaRestaurantes(
                     nota = ""
                     preco = ""
                     descricao = ""
+                    editando = null
                 }
             },
             modifier = Modifier.fillMaxWidth()
         ) {
-            Text("Adicionar restaurante")
+            Text(if (editando == null) "Adicionar restaurante" else "Salvar alterações")
         }
 
         Spacer(modifier = Modifier.height(16.dp))
@@ -279,6 +304,21 @@ fun TelaRestaurantes(
 
                         IconButton(
                             onClick = {
+                                editando = restaurante
+                                nome = restaurante.nome
+                                nota = restaurante.nota.toString()
+                                preco = restaurante.preco
+                                descricao = restaurante.descricao
+                            }
+                        ) {
+                            Icon(
+                                Icons.Default.Edit,
+                                contentDescription = "Editar"
+                            )
+                        }
+
+                        IconButton(
+                            onClick = {
                                 CoroutineScope(Dispatchers.IO).launch {
                                     try {
                                         dao.deletar(restaurante)
@@ -287,10 +327,8 @@ fun TelaRestaurantes(
                                         Log.e("Paladar", "Erro ao remover restaurante", e)
                                     }
                                 }
-
                             }
                         ) {
-
                             Icon(
                                 Icons.Default.Delete,
                                 contentDescription = "Remover"
@@ -311,6 +349,20 @@ fun TelaCategorias(
 
     var nome by remember { mutableStateOf("") }
     var descricao by remember { mutableStateOf("") }
+
+    val context = LocalContext.current
+    val dao = AppDatabase.getDatabase(context).categoriaDao()
+    var lista by remember { mutableStateOf(emptyList<Categoria>()) }
+
+    suspend fun carregar() {
+        try {
+            lista = withContext(Dispatchers.IO) { dao.buscarTodos() }
+        } catch (e: Exception) {
+            Log.e("Paladar", "Erro ao buscar categorias", e)
+        }
+    }
+
+    LaunchedEffect(Unit) { carregar() }
 
     Column(
         modifier = Modifier
@@ -351,15 +403,19 @@ fun TelaCategorias(
 
                 if (nome.isNotBlank()) {
 
-                    val novoId = (categorias.maxOfOrNull { it.id } ?: 0) + 1
-
-                    categorias.add(
-                        Categoria(
-                            id = novoId,
-                            nome = nome,
-                            descricao = descricao
-                        )
+                    val nova = Categoria(
+                        nome = nome,
+                        descricao = descricao
                     )
+
+                    CoroutineScope(Dispatchers.IO).launch {
+                        try {
+                            dao.inserir(nova)
+                            carregar()
+                        } catch (e: Exception) {
+                            Log.e("Paladar", "Erro ao inserir categoria", e)
+                        }
+                    }
 
                     nome = ""
                     descricao = ""
@@ -377,7 +433,7 @@ fun TelaCategorias(
         ) {
 
             items(
-                items = categorias,
+                items = lista,
                 key = { it.id }
             ) { categoria ->
 
@@ -416,7 +472,14 @@ fun TelaCategorias(
 
                         IconButton(
                             onClick = {
-                                categorias.remove(categoria)
+                                CoroutineScope(Dispatchers.IO).launch {
+                                    try {
+                                        dao.deletar(categoria)
+                                        carregar()
+                                    } catch (e: Exception) {
+                                        Log.e("Paladar", "Erro ao remover categoria", e)
+                                    }
+                                }
                             }
                         ) {
 
@@ -440,17 +503,32 @@ fun TelaDetalheRestaurante(
     paddingValues: androidx.compose.foundation.layout.PaddingValues
 ) {
 
-    val restaurante = restaurantes.find {
-        it.id == id
+    val context = LocalContext.current
+    val dao = AppDatabase.getDatabase(context).restauranteDao()
+    val categoriaDao = AppDatabase.getDatabase(context).categoriaDao()
+
+    var restauranteBanco by remember { mutableStateOf<Restaurante?>(null) }
+    var categoriaNome by remember { mutableStateOf("Sem categoria") }
+
+    suspend fun carregar() {
+        try {
+            val encontrado = withContext(Dispatchers.IO) { dao.buscarPorId(id) }
+            restauranteBanco = encontrado
+            if (encontrado != null) {
+                val cat = withContext(Dispatchers.IO) {
+                    categoriaDao.buscarPorId(encontrado.categoriaId)
+                }
+                categoriaNome = cat?.nome ?: "Sem categoria"
+            }
+        } catch (e: Exception) {
+            Log.e("Paladar", "Erro ao buscar restaurante", e)
+        }
     }
 
-    if (restaurante == null) {
-        return
-    }
+    LaunchedEffect(id) { carregar() }
 
-    val categoria = categorias.find {
-        it.id == restaurante.categoriaId
-    }
+    val restaurante = restauranteBanco ?: return
+
 
     val classificacao = when {
         restaurante.nota >= 4.5 -> "Excelente"
@@ -509,7 +587,7 @@ fun TelaDetalheRestaurante(
             )
 
             Text(
-                text = "Categoria: ${categoria?.nome ?: "Sem categoria"}"
+                text = "Categoria: $categoriaNome"
             )
 
             Spacer(modifier = Modifier.height(10.dp))
@@ -530,16 +608,17 @@ fun TelaDetalheRestaurante(
             Button(
                 onClick = {
 
-                    val index = restaurantes.indexOfFirst {
-                        it.id == restaurante.id
-                    }
+                    val alterado = restaurante.copy(
+                        favorito = !restaurante.favorito
+                    )
 
-                    if (index != -1) {
-
-                        restaurantes[index] =
-                            restaurantes[index].copy(
-                                favorito = !restaurantes[index].favorito
-                            )
+                    CoroutineScope(Dispatchers.IO).launch {
+                        try {
+                            dao.atualizar(alterado)
+                            carregar()
+                        } catch (e: Exception) {
+                            Log.e("Paladar", "Erro ao atualizar favorito", e)
+                        }
                     }
                 },
                 modifier = Modifier.fillMaxWidth()
@@ -574,17 +653,27 @@ fun TelaDetalheCategoria(
     paddingValues: androidx.compose.foundation.layout.PaddingValues
 ) {
 
-    val categoria = categorias.find {
-        it.id == id
+    val context = LocalContext.current
+    val categoriaDao = AppDatabase.getDatabase(context).categoriaDao()
+    val restauranteDao = AppDatabase.getDatabase(context).restauranteDao()
+
+    var categoriaBanco by remember { mutableStateOf<Categoria?>(null) }
+    var restaurantesDaCategoria by remember { mutableStateOf(emptyList<Restaurante>()) }
+
+    LaunchedEffect(id) {
+        try {
+            categoriaBanco = withContext(Dispatchers.IO) {
+                categoriaDao.buscarPorId(id)
+            }
+            restaurantesDaCategoria = withContext(Dispatchers.IO) {
+                restauranteDao.buscarPorCategoria(id)
+            }
+        } catch (e: Exception) {
+            Log.e("Paladar", "Erro ao buscar categoria", e)
+        }
     }
 
-    if (categoria == null) {
-        return
-    }
-
-    val restaurantesDaCategoria = restaurantes.filter {
-        it.categoriaId == categoria.id
-    }
+    val categoria = categoriaBanco ?: return
 
     Scaffold(
         modifier = Modifier.padding(paddingValues),
@@ -694,8 +783,16 @@ fun TelaFavoritos(
     paddingValues: androidx.compose.foundation.layout.PaddingValues
 ) {
 
-    val favoritos = restaurantes.filter {
-        it.favorito
+    val context = LocalContext.current
+    val dao = AppDatabase.getDatabase(context).restauranteDao()
+    var favoritos by remember { mutableStateOf(emptyList<Restaurante>()) }
+
+    LaunchedEffect(Unit) {
+        try {
+            favoritos = withContext(Dispatchers.IO) { dao.buscarFavoritos() }
+        } catch (e: Exception) {
+            Log.e("Paladar", "Erro ao buscar favoritos", e)
+        }
     }
 
     Column(

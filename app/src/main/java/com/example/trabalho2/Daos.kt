@@ -17,6 +17,12 @@ interface RestauranteDao {
     @Query("SELECT * FROM restaurantes WHERE id = :id")
     suspend fun buscarPorId(id: Int): Restaurante?
 
+    @Query("SELECT * FROM restaurantes WHERE categoriaId = :categoriaId")
+    suspend fun buscarPorCategoria(categoriaId: Int): List<Restaurante>
+
+    @Query("SELECT * FROM restaurantes WHERE favorito = 1")
+    suspend fun buscarFavoritos(): List<Restaurante>
+
     @Update
     suspend fun atualizar(restaurante: Restaurante)
 
@@ -41,4 +47,3 @@ interface CategoriaDao {
     @Delete
     suspend fun deletar(categoria: Categoria)
 }
-
