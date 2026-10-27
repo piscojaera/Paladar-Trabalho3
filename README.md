@@ -100,7 +100,7 @@ Passo a passo do teste de aceitação: adicionar um item, fechar o app completam
 
 ### Vídeo
 
-[Vídeo do teste de persistência]([videos/teste-persistencia.mp4](https://youtu.be/PaKQLu8-V9I))
+https://www.youtube.com/watch?v=PaKQLu8-V9I
 
 ### Prints
 
