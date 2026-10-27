@@ -94,40 +94,13 @@ O que quebrou e como resolvi:
 
 ## 5. Teste de persistência
 
-Passo a passo do teste de aceitação: adicionar um item, fechar o app completamente e abrir de novo.
+O vídeo abaixo mostra o teste de aceitação: adicionar um item, fechar o app completamente e abrir de novo, com o item continuando lá.
 
-<!-- COLOQUE AQUI os prints e o vídeo. Os nomes abaixo são só exemplos: use os nomes dos seus arquivos. -->
+[Vídeo do teste de persistência](https://youtu.be/PaKQLu8-V9I)
 
-### Vídeo
+## 6. Dificuldades dos integrantes
 
-https://www.youtube.com/watch?v=PaKQLu8-V9I
-
-### Prints
-
-**Lista inicial (dados criados pelo banco)**
-
-<img src="prints/01-lista-inicial.png" width="300">
-
-**Adicionando um restaurante**
-
-<img src="prints/02-adicionando.png" width="300">
-
-**Editando um restaurante**
-
-<img src="prints/03-editando.png" width="300">
-
-**Detalhe lido do banco, com favorito**
-
-<img src="prints/04-detalhe-favorito.png" width="300">
-
-**Tela de favoritos**
-
-<img src="prints/05-favoritos.png" width="300">
-
-**Depois de fechar e abrir o app, o item continua lá**
-
-<img src="prints/06-apos-reabrir.png" width="300">
-
+Fiz este trabalho individualmente, então as dificuldades são as da seção 4. As que mais deram trabalho foram a ordem das mudanças (migrar uma tela de cada vez para o app continuar compilando) e conferir onde cada trecho de código entrava dentro de funções grandes do `Telas.kt`.
 ## 6. Dificuldades dos integrantes
 
 Fiz este trabalho individualmente, então as dificuldades são as da seção 4. As que mais deram trabalho foram a ordem das mudanças (migrar uma tela de cada vez para o app continuar compilando) e conferir onde cada trecho de código entrava dentro de funções grandes do `Telas.kt`.
